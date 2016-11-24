@@ -1,6 +1,7 @@
 # Docker for Magento 2 development process
 --------
 Simple compose for Magento 2 that contains:
+
 1. PHP 7.0 (PHP-FPM with xDebug)
 2. Nginx (latest)
 3. Redis (latest)
