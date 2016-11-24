@@ -123,7 +123,7 @@ hash docker-compose 2>/dev/null || { echo >&2 "$SCRIPTNAME requires \"docker-com
 # Returns:
 #   None
 #######################################
-executeInDocker() {
+executeMagentoInDocker() {
 
   if [ $(isRunning) = false ]; then
     echo >&2 "Docker is not running. Please start the containers first.";
@@ -135,6 +135,54 @@ executeInDocker() {
 
   # pass the arguments to the bin/magento script inside the PHP container
   docker exec -it -u www-data $phpContainerName bash -c "bin/magento $*"
+}
+
+#######################################
+# Show NGINX logs inside the web docker
+# container with all given arguments.
+# Globals:
+#   None
+# Arguments:
+#   log file path
+# Returns:
+#   None
+#######################################
+showNginxLogsInDocker() {
+
+  if [ $(isRunning) = false ]; then
+    echo >&2 "Docker is not running. Please start the containers first.";
+    exit 1;
+  fi
+
+  # get the container name of the PHP container
+  nginxContainerName=$(docker-compose ps -q | xargs docker inspect --format='{{ .Name }}' | sed 's:^/::g' | grep "web_")
+
+  # pass the arguments to the redis-cli script inside the Redis container
+  docker exec -it -u www-data $nginxContainerName bash -c "tail -f $1"
+}
+
+#######################################
+# Execute redis-cli inside the redis docker
+# container with all given arguments.
+# Globals:
+#   None
+# Arguments:
+#   *
+# Returns:
+#   None
+#######################################
+executeRedisInDocker() {
+
+  if [ $(isRunning) = false ]; then
+    echo >&2 "Docker is not running. Please start the containers first.";
+    exit 1;
+  fi
+
+  # get the container name of the PHP container
+  redisContainerName=$(docker-compose ps -q | xargs docker inspect --format='{{ .Name }}' | sed 's:^/::g' | grep "cache_")
+
+  # pass the arguments to the redis-cli script inside the Redis container
+  docker exec -it -u www-data $redisContainerName bash -c "redis-cli $*"
 }
 
 #######################################
@@ -248,20 +296,29 @@ installMagento() {
   baseURLInsecure="http://${hostname}/"
   baseURLSecure="https://${hostname}/"
   backendURL="https://${hostname}/${BACKEND_FRONTNAME}"
-  executeInDocker setup:install --base-url=$baseURLInsecure --base-url-secure=$baseURLSecure --backend-frontname=${BACKEND_FRONTNAME} \
+  executeMagentoInDocker setup:install --base-url=$baseURLInsecure --base-url-secure=$baseURLSecure --backend-frontname=${BACKEND_FRONTNAME} \
                             --language=${DEFAULT_LANGUAGE} --currency=${DEFAULT_CURRENCY} --timezone=${DEFAULT_TIMEZONE} \
                             --db-host=mysql --db-name=${DATABASE_NAME} --db-user=${DATABASE_USER} --db-password=${DATABASE_PASSWORD} \
                             --admin-firstname=${ADMIN_FIRSTNAME} --admin-lastname=${ADMIN_LASTNAME} --admin-email=${ADMIN_EMAIL} --admin-user=${ADMIN_USERNAME} --admin-password=${ADMIN_PASSWORD} \
                             --cleanup-database --session-save=db
+ 
+  # get the container name of the PHP container
+  phpContainerName=$(docker-compose ps -q | xargs docker inspect --format='{{ .Name }}' | sed 's:^/::g' | grep "php_")
+
+  # update vendor (composer.json)
+  docker exec -it -u www-data $phpContainerName bash -c "php /usr/local/bin/composer install -o"
 
   # Install and update modules
-  executeInDocker setup:upgrade
+  executeMagentoInDocker setup:upgrade
 
   # Clear cache
-  executeInDocker cache:clean
+  executeMagentoInDocker cache:clean
 
   # Index data
-  executeInDocker indexer:reindex
+  executeMagentoInDocker indexer:reindex
+
+  # Set developer mode
+  executeMagentoInDocker deploy:mode:set developer
 
   # Print results
   echo "\n"
@@ -370,39 +427,30 @@ isRunning() {
   fi
 }
 
-#######################################
-# Print the usage information for the
-# server control script
-# Globals:
-#   SCRIPTNAME
-# Arguments:
-#   None
-# Returns:
-#   None
-#######################################
-usage() {
-  echo "Utility for controlling dockerized Magento projects\n"
-  echo "Usage:\n\n  $SCRIPTNAME <action> <arguments...>"
-  echo ""
-  echo "Actions:\n"
-  printf "  %-15s%-30s\n" "install" "Install Magento"
-  printf "  %-15s%-30s\n" "exec" "Execute bin/magento inside docker"
-  echo ""
-  printf "  %-15s%-30s\n" "start" "Start the server and all of its components"
-  printf "  %-15s%-30s\n" "restart" "Restart the server"
-  printf "  %-15s%-30s\n" "stop" "Stop the server"
-  printf "  %-15s%-30s\n" "status" "Get the current server status"
-}
-
 case "$1" in
     install)
     shift 1
     installMagento $*
     ;;
 
-    exec)
+    magento)
     shift 1
-    executeInDocker $*
+    executeMagentoInDocker $*
+    ;;
+
+    "redis-cli")
+    shift 1
+    executeRedisInDocker $*
+    ;;
+
+    "nginx-error-logs")
+    shift 1
+    showNginxLogsInDocker "/var/log/nginx/error.log"
+    ;;
+
+    "nginx-access-logs")
+    shift 1
+    showNginxLogsInDocker "/var/log/nginx/access.log"
     ;;
 
     start)
