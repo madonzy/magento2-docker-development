@@ -17,7 +17,7 @@ Configuration file is located in **config/env.sh** (change it before installatio
 2. $ `docker-machine create customvmname --driver virtualbox` **WARNING**: Regular expression for customvmname `/^[a-zA-Z0-9]+[a-zA-Z]$/`. If you use MacOS, then you should use "vmwarefusion" driver, because of VB file permission problems with MacOS volumes.
 3. $ `eval $(docker-machine env customvmname)`
 4. $ `chmod u+x bin/console`
-5. $ `bin/console install yourdomain.local`
+5. $ `bin/console install yourdomain.local`. If error occures try to run with `sudo`
 6. Process can take up to 30 min
 7. $ `docker-machine ip customvmname` (get machine IP)
 8. Copy output of step #7 to /etc/hosts as domain you set in step #5
