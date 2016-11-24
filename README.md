@@ -13,7 +13,6 @@ All required libraries are in-box.
 Configuration file is located in **config/env.sh** (change it before installation if needed)
 
 ### Installation:
-
 1. `git submodule add path_to_your_project_git_repo web`. Put your Magento 2 project files into **./web** folder.
 2. $ `docker-machine create customvmname --driver virtualbox` **WARNING**: Regular expression for customvmname `/^[a-zA-Z0-9]+[a-zA-Z]$/`. If you use MacOS, then you should use "vmwarefusion" driver, because of VB file permission problems with MacOS volumes.
 3. $ `eval $(docker-machine env customvmname)`
@@ -42,6 +41,7 @@ Configuration file is located in **config/env.sh** (change it before installatio
 
 ### Features
 While you run `bin/console install yourdomain.local`, following actions are doing automatically:
+
 1. Install vendor magento using composer
 2. Install magento DB data (magento setup:install)
 3. Upgrade migration scripts (magento setup:upgrade)
