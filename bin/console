@@ -274,7 +274,7 @@ installMagento() {
     exit 1
   fi
 
-  # generate a SSL certificate
+  generate a SSL certificate
   generateSSLCertificate $hostname
   if [ $? -ne 0 ]; then
     exit 1
@@ -292,6 +292,12 @@ installMagento() {
   # wait for MySQL to come up
   sleep 30
 
+  # get the container name of the PHP container
+  phpContainerName=$(docker-compose ps -q | xargs docker inspect --format='{{ .Name }}' | sed 's:^/::g' | grep "php_")
+
+  # update vendor (composer.json)
+  docker exec -it -u www-data $phpContainerName bash -c "php /usr/local/bin/composer install -o"
+
   # Install magento 2
   baseURLInsecure="http://${hostname}/"
   baseURLSecure="https://${hostname}/"
@@ -301,24 +307,18 @@ installMagento() {
                             --db-host=mysql --db-name=${DATABASE_NAME} --db-user=${DATABASE_USER} --db-password=${DATABASE_PASSWORD} \
                             --admin-firstname=${ADMIN_FIRSTNAME} --admin-lastname=${ADMIN_LASTNAME} --admin-email=${ADMIN_EMAIL} --admin-user=${ADMIN_USERNAME} --admin-password=${ADMIN_PASSWORD} \
                             --cleanup-database --session-save=db
- 
-  # get the container name of the PHP container
-  phpContainerName=$(docker-compose ps -q | xargs docker inspect --format='{{ .Name }}' | sed 's:^/::g' | grep "php_")
-
-  # update vendor (composer.json)
-  docker exec -it -u www-data $phpContainerName bash -c "php /usr/local/bin/composer install -o"
 
   # Install and update modules
   executeMagentoInDocker setup:upgrade
-
-  # Clear cache
-  executeMagentoInDocker cache:clean
 
   # Index data
   executeMagentoInDocker indexer:reindex
 
   # Set developer mode
   executeMagentoInDocker deploy:mode:set developer
+
+  # Save DB backup
+  executeMagentoInDocker setup:backup --db
 
   # Print results
   echo "\n"

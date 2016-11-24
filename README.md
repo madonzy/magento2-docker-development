@@ -14,16 +14,15 @@ Configuration file is located in **config/env.sh** (change it before installatio
 
 ### Installation:
 
-1. $ `mkdir web`
-2. `git submodule add url_to_your_project_git_repo ./web`. Put your Magento 2 project files into **./web** folder.
-3. $ `docker-machine create customvmname --driver virtualbox` **WARNING**: Regular expression for customvmname `/^[a-zA-Z0-9]+[a-zA-Z]$/`. If you use MacOS, then you should use "vmwarefusion" driver, because of VB file permission problems with MacOS volumes.
-4. $ `eval $(docker-machine env customvmname)`
-5. $ `chmod u+x bin/console`
-6. $ `bin/console install yourdomain.local`
-7. Process can take up to 30 min
-8. $ `docker-machine ip customvmname` (get machine IP)
-9. Copy output of step #7 to /etc/hosts as domain you set in step #5
-10. Check in browser. Done ;)
+1. `git submodule add path_to_your_project_git_repo web`. Put your Magento 2 project files into **./web** folder.
+2. $ `docker-machine create customvmname --driver virtualbox` **WARNING**: Regular expression for customvmname `/^[a-zA-Z0-9]+[a-zA-Z]$/`. If you use MacOS, then you should use "vmwarefusion" driver, because of VB file permission problems with MacOS volumes.
+3. $ `eval $(docker-machine env customvmname)`
+4. $ `chmod u+x bin/console`
+5. $ `bin/console install yourdomain.local`
+6. Process can take up to 30 min
+7. $ `docker-machine ip customvmname` (get machine IP)
+8. Copy output of step #7 to /etc/hosts as domain you set in step #5
+9. Check in browser. Done ;)
 
 ### Docker commands
 1. To start docker-machine use `docker-machine start yourmvmname`
@@ -40,6 +39,15 @@ Configuration file is located in **config/env.sh** (change it before installatio
 
 ### Logs commands
 1. To see (in real time) nginx errors `bin/console nginx-error-logs|nginx-access-logs`. Use `nginx-error-logs` for tailing /var/log/nginx/error.log and `nginx-access-logs` for tailing /var/log/nginx/access.log
+
+### Features
+While you run `bin/console install yourdomain.local`, following actions are doing automatically:
+1. Install vendor magento using composer
+2. Install magento DB data (magento setup:install)
+3. Upgrade migration scripts (magento setup:upgrade)
+4. Reindexation (magento indexer:reindex)
+5. Set developer mode (deploy:mode:set developer)
+6. Backup od databese (setup:backup --db)
 
 This solution is only improvement of @arvatoSCM [project][aSCM].
 
